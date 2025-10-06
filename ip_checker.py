@@ -2,8 +2,12 @@
 
 """
 IP Addressing Information Prototype (with User Menu, Lookup, and Reserved IP Check)
-Author: Gemini
-Date: 2025-09-30
+Team members: 
+Jason Wendell Agilada - Team Leader
+Angelo Jacob Valeros - Developer
+Julian Alfonso Cabansag - Developer
+Vince Tyrone Vermudo - Quality Assurance
+Created Date: 2025-10-04
 
 Description:
 This application allows a user to either retrieve their own public IP
