@@ -17,10 +17,14 @@ It uses a list of public REST APIs with a failover mechanism.
 """
 
 import requests
+ # Used to send HTTP requests to online IP info services
 import ipaddress
+ # Used to check and handle IP address formats (IPv4/IPv6)
 import sys
+ # Used for system exit and command-line operations
 
 API_PROVIDERS = [
+ # List of online services to get IP information
     {
         'name': 'ipapi.co',
         'url': 'https://ipapi.co/json/',
@@ -39,8 +43,9 @@ API_PROVIDERS = [
 ]
 
 IPV6_INFO_URL = "https://v6.seeip.org/jsonip"
+ # URL to get your public IPv6 address
 
-
+# Function to convert different API responses into the same format
 def normalize_data(data, provider_name):
     """Translates JSON data from different APIs into a standard format."""
     normalized = {}
@@ -71,6 +76,7 @@ def normalize_data(data, provider_name):
         normalized['country_code'] = data.get('country_code', 'N/A')
     return normalized
 
+# Function to check if a string is a valid IP address
 def is_valid_ip(ip_string):
     """Checks if the provided string is a valid IPv4 or IPv6 address."""
     try:
@@ -79,6 +85,7 @@ def is_valid_ip(ip_string):
     except ValueError:
         return False
 
+# Function to get IP information from online services
 def get_public_ip_info(target_ip=None):
     """Fetches IP info, either for the user or a specified target IP."""
     for provider in API_PROVIDERS:
@@ -102,6 +109,7 @@ def get_public_ip_info(target_ip=None):
     print("Error: All API providers failed.")
     return None
 
+# Function to get your public IPv6 address
 def get_public_ipv6():
     """Fetches the user's public IPv6 address."""
     print("--> Checking for public IPv6 address...")
@@ -112,6 +120,7 @@ def get_public_ipv6():
     except requests.exceptions.RequestException:
         return "Not available on this network"
 
+# Function to display IP information in a nice format
 def display_info(ip_data, ipv6_address=None):
     """Formats and displays the collected IP information."""
     title = "Public IP Address Information"
@@ -140,6 +149,7 @@ def display_info(ip_data, ipv6_address=None):
     print(f"{'Geolocation:':<25} {location}")
     print("-----------------------------------------------\n")
 
+# Main program that shows menu and handles user choices
 def main():
     """Main function with menu and reserved IP address handling."""
     
@@ -178,7 +188,7 @@ def main():
                     print("Status: This IP is reserved for a special use-case by the IETF.")
                 print("It cannot be looked up for public geolocation information.\n")
                 sys.exit(0)
-            # --- END OF NEW CODE BLOCK ---
+            
             
             # If the code reaches here, the IP is valid and public
             ip_details = get_public_ip_info(target_ip=ip_to_lookup)
