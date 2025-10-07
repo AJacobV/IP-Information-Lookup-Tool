@@ -22,6 +22,10 @@ import ipaddress
  # Used to check and handle IP address formats (IPv4/IPv6)
 import sys
  # Used for system exit and command-line operations
+import tkinter as tk
+ # Used to create the graphical user interface
+from tkinter import messagebox, scrolledtext
+ # Used for popup messages and scrollable text area
 
 API_PROVIDERS = [
  # List of online services to get IP information
@@ -127,8 +131,6 @@ def display_info(ip_data, ipv6_address=None):
     if ipv6_address is None:
         title = f"Information for IP: {ip_data.get('ip', '')}"
     
-    print(f"\n--- {title} ---")
-    
     main_ip = ip_data.get('ip', 'N/A')
     ip_version = ip_data.get('version', 'IP').upper()
     isp = ip_data.get('isp', 'N/A')
@@ -138,72 +140,149 @@ def display_info(ip_data, ipv6_address=None):
     country_code = ip_data.get('country_code', 'N/A')
     location = f"{city}, {region}, {country_code}"
     
-    print(f"{f'{ip_version} Address:':<25} {main_ip}")
+    # Format the information as a string to return
+    info_text = f"\n--- {title} ---\n"
+    info_text += f"{f'{ip_version} Address:':<25} {main_ip}\n"
     
     if ipv6_address:
-        print(f"{'Public IPv6 Address:':<25} {ipv6_address}")
+        info_text += f"{'Public IPv6 Address:':<25} {ipv6_address}\n"
         
-    print("-" * 45)
-    print(f"{'ISP Provider:':<25} {isp}")
-    print(f"{'ASN:':<25} {asn}")
-    print(f"{'Geolocation:':<25} {location}")
-    print("-----------------------------------------------\n")
+    info_text += "-" * 45 + "\n"
+    info_text += f"{'ISP Provider:':<25} {isp}\n"
+    info_text += f"{'ASN:':<25} {asn}\n"
+    info_text += f"{'Geolocation:':<25} {location}\n"
+    info_text += "-----------------------------------------------\n"
+    
+    return info_text
 
-# Main program that shows menu and handles user choices
-def main():
-    """Main function with menu and reserved IP address handling."""
+# GUI Class to create the main window
+class IPCheckerGUI:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("IP Information Lookup Tool")
+        self.root.geometry("600x500")
+        self.root.configure(bg='#f0f0f0')
+        
+        # Main title
+        title = tk.Label(root, text="IP Information Lookup Tool", 
+                        font=('Arial', 16, 'bold'), bg='#f0f0f0')
+        title.pack(pady=10)
+        
+        # Button frame
+        button_frame = tk.Frame(root, bg='#f0f0f0')
+        button_frame.pack(pady=10)
+        
+        # Get my IP button
+        self.my_ip_btn = tk.Button(button_frame, text="Get My IP Information", 
+                                  command=self.get_my_ip, font=('Arial', 12),
+                                  bg='#4CAF50', fg='white', padx=20, pady=10)
+        self.my_ip_btn.pack(pady=5)
+        
+        # IP lookup frame
+        lookup_frame = tk.Frame(root, bg='#f0f0f0')
+        lookup_frame.pack(pady=10)
+        
+        # IP input label and entry
+        ip_label = tk.Label(lookup_frame, text="Enter IP Address to lookup:", 
+                           font=('Arial', 12), bg='#f0f0f0')
+        ip_label.pack()
+        
+        self.ip_entry = tk.Entry(lookup_frame, font=('Arial', 12), width=20)
+        self.ip_entry.pack(pady=5)
+        
+        # Lookup IP button
+        self.lookup_btn = tk.Button(lookup_frame, text="Look Up IP", 
+                                   command=self.lookup_ip, font=('Arial', 12),
+                                   bg='#2196F3', fg='white', padx=20, pady=10)
+        self.lookup_btn.pack(pady=5)
+        
+        # Results text area with scrollbar
+        self.result_text = scrolledtext.ScrolledText(root, width=70, height=20, 
+                                                    font=('Courier', 10))
+        self.result_text.pack(pady=20, padx=20, fill=tk.BOTH, expand=True)
+        
+        # Status label
+        self.status_label = tk.Label(root, text="Ready", 
+                                    font=('Arial', 10), bg='#f0f0f0')
+        self.status_label.pack(pady=5)
     
-    print("========================================")
-    print("     IP Information Lookup Tool")
-    print("========================================")
-    print("Please select an option:")
-    print("  1. Get my own computer's IP information")
-    print("  2. Look up a specific IP address")
-    print("========================================")
+    def update_status(self, message):
+        """Update the status label"""
+        self.status_label.config(text=message)
+        self.root.update()
     
-    choice = input("Enter your choice (1 or 2): ")
-    
-    ip_details = None
-    
-    if choice == '1':
-        ip_details = get_public_ip_info()
-        if ip_details:
-            ipv6 = get_public_ipv6()
-            display_info(ip_details, ipv6)
-            
-    elif choice == '2':
-        ip_to_lookup = input("Enter the IP address to look up: ")
-        if is_valid_ip(ip_to_lookup):
-            # --- NEW: Check if the IP is private/reserved before calling the API ---
-            ip_obj = ipaddress.ip_address(ip_to_lookup)
-            if not ip_obj.is_global:
-                print("\n--- IP Address Status ---")
-                print(f"The IP address '{ip_to_lookup}' is a reserved address.")
-                # Provide more specific information if possible
-                if ip_obj.is_private:
-                    print("Status: This IP is in a private network range (e.g., a home or corporate LAN).")
-                elif ip_obj.is_loopback:
-                    print("Status: This is a loopback address (refers to the local machine).")
-                elif ip_obj.is_reserved:
-                    print("Status: This IP is reserved for a special use-case by the IETF.")
-                print("It cannot be looked up for public geolocation information.\n")
-                sys.exit(0)
-            
-            
-            # If the code reaches here, the IP is valid and public
-            ip_details = get_public_ip_info(target_ip=ip_to_lookup)
+    def get_my_ip(self):
+        """Get current computer's IP information"""
+        self.result_text.delete(1.0, tk.END)
+        self.update_status("Getting your IP information...")
+        
+        try:
+            ip_details = get_public_ip_info()
             if ip_details:
-                display_info(ip_details, None)
-        else:
-            print("\nError: Invalid IP address format. Please enter a valid IPv4 or IPv6 address.")
-            sys.exit(1)
-            
-    else:
-        print("\nError: Invalid choice. Please run the script again and enter 1 or 2.")
-        sys.exit(1)
+                ipv6 = get_public_ipv6()
+                info_text = display_info(ip_details, ipv6)
+                self.result_text.insert(tk.END, info_text)
+                self.update_status("Successfully retrieved your IP information")
+            else:
+                self.result_text.insert(tk.END, "Failed to retrieve IP information. Please check your internet connection.")
+                self.update_status("Failed to get IP information")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+            self.update_status("Error occurred")
+    
+    def lookup_ip(self):
+        """Look up specific IP address"""
+        ip_to_lookup = self.ip_entry.get().strip()
+        
+        if not ip_to_lookup:
+            messagebox.showwarning("Input Required", "Please enter an IP address to lookup.")
+            return
+        
+        self.result_text.delete(1.0, tk.END)
+        self.update_status(f"Looking up {ip_to_lookup}...")
+        
+        try:
+            if is_valid_ip(ip_to_lookup):
+                # Check if the IP is private/reserved
+                ip_obj = ipaddress.ip_address(ip_to_lookup)
+                if not ip_obj.is_global:
+                    status_text = f"\n--- IP Address Status ---\n"
+                    status_text += f"The IP address '{ip_to_lookup}' is a reserved address.\n"
+                    
+                    if ip_obj.is_private:
+                        status_text += "Status: This IP is in a private network range (e.g., a home or corporate LAN).\n"
+                    elif ip_obj.is_loopback:
+                        status_text += "Status: This is a loopback address (refers to the local machine).\n"
+                    elif ip_obj.is_reserved:
+                        status_text += "Status: This IP is reserved for a special use-case by the IETF.\n"
+                    
+                    status_text += "It cannot be looked up for public geolocation information.\n"
+                    self.result_text.insert(tk.END, status_text)
+                    self.update_status("IP is reserved/private")
+                    return
+                
+                # If the code reaches here, the IP is valid and public
+                ip_details = get_public_ip_info(target_ip=ip_to_lookup)
+                if ip_details:
+                    info_text = display_info(ip_details, None)
+                    self.result_text.insert(tk.END, info_text)
+                    self.update_status("Successfully looked up IP information")
+                else:
+                    self.result_text.insert(tk.END, "Failed to retrieve IP information. Please try again.")
+                    self.update_status("Failed to lookup IP")
+            else:
+                messagebox.showerror("Invalid IP", "Invalid IP address format. Please enter a valid IPv4 or IPv6 address.")
+                self.update_status("Invalid IP address")
+        except Exception as e:
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
+            self.update_status("Error occurred")
 
-    if not ip_details:
-        print("\nApplication failed to retrieve IP details. Exiting.")
+# Main program that creates and runs the GUI
+def main():
+    """Main function that starts the GUI application"""
+    root = tk.Tk()
+    app = IPCheckerGUI(root)
+    root.mainloop()
 
 if __name__ == "__main__":
     main()
